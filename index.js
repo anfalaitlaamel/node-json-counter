@@ -4,10 +4,8 @@ const path = require("path");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
 const FILE = path.join(__dirname, "visits.json");
 
-// Mutex simple
 let lock = false;
 
 // Lire compteur
@@ -45,12 +43,30 @@ app.get("/", async (req, res) => {
     count++;
     writeCounter(count);
 
-    res.send(`Nombre de visites : ${count}`);
+    const hostname = req.hostname;
+    const port = req.socket.localPort;
+    const serverIP = req.socket.localAddress;
+    const clientIP =
+      req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+
+    res.send(`
+      <h2>Compteur de visites</h2>
+      <p><strong>Nombre de visites :</strong> ${count}</p>
+      <hr>
+      <h3>Informations serveur</h3>
+      <p><strong>Hostname :</strong> ${hostname}</p>
+      <p><strong>Port :</strong> ${port}</p>
+      <p><strong>IP serveur :</strong> ${serverIP}</p>
+      <hr>
+      <h3>Informations client</h3>
+      <p><strong>IP client :</strong> ${clientIP}</p>
+    `);
   } finally {
     lock = false;
   }
 });
 
+// ✅ IMPORTANT : ici seulement
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
