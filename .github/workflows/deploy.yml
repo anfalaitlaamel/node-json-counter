@@ -1,38 +1,43 @@
 name: Build and Deploy Container to Azure
 
+# Déclenche le workflow à chaque push sur main
 on:
   push:
     branches:
       - main
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true  # Force Node.js 24 pour actions
     steps:
-      - name: Checkout code
+      # Étape 1 : Récupérer le code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Étape 2 : Login Azure avec le service principal
       - name: Login to Azure
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Login to ACR
+      # Étape 3 : Login à ACR
+      - name: Login to Azure Container Registry
         run: |
-          echo "${{ secrets.ACR_PASSWORD }}" | docker login ${{ secrets.ACR_LOGIN_SERVER }} -u ${{ secrets.ACR_USERNAME }} --password-stdin
+          echo ${{ secrets.ACR_PASSWORD }} | docker login ${{ secrets.ACR_LOGIN_SERVER }} -u ${{ secrets.ACR_USERNAME }} --password-stdin
 
+      # Étape 4 : Build de l'image Docker
       - name: Build Docker image
         run: |
           docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/node-app:latest .
 
-      - name: Push Docker image
+      # Étape 5 : Push de l'image sur ACR
+      - name: Push Docker image to ACR
         run: |
           docker push ${{ secrets.ACR_LOGIN_SERVER }}/node-app:latest
 
+      # Étape 6 : Déploiement sur Azure Web App
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
